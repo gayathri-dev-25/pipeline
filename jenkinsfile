@@ -1,0 +1,43 @@
+pipeline {
+    agent any
+
+    environment {
+        DOCKER_IMAGE = "gayathrireddyponna123/your-app-name"
+        KUBE_DEPLOYMENT = "deployment.yaml"
+    }
+
+    stages {
+        stage('Checkout Code') {
+            steps {
+                git credentialsId: 'ae89cfc6-1ebc-401b-b838-cd6933e98698', url: 'https://github.com/your-user/your-repo.git'
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                script {
+                    dockerImage = docker.build("${DOCKER_IMAGE}:${BUILD_NUMBER}")
+                }
+            }
+        }
+
+        stage('Push to Docker Hub') {
+            steps {
+                withDockerRegistry([credentialsId: 'e10d6df6-afc7-4950-b113-5658c553bf7c', url: '']) {
+                    script {
+                        dockerImage.push()
+                        dockerImage.push('latest')
+                    }
+                }
+            }
+        }
+
+        stage('Deploy to Kubernetes') {
+            steps {
+                sh """
+                kubectl set image deployment/${KUBE_DEPLOYMENT} your-container-name=${DOCKER_IMAGE}:${BUILD_NUMBER}
+                """
+            }
+        }
+    }
+}
