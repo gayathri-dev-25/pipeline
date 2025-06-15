@@ -5,6 +5,8 @@ pipeline {
         IMAGE_NAME = 'gayathrireddyponna123/nodeapp'
         DEPLOYMENT_NAME = 'nodeapp-deployment'
         CONTAINER_NAME = 'nodeapp'
+        AWS_REGION = 'us-east-1'
+        CLUSTER_NAME = 'demo-eks'
     }
 
     stages {
@@ -37,8 +39,23 @@ pipeline {
 
         stage('Deploy to Kubernetes') {
             steps {
-                sh "kubectl set image deployment/${DEPLOYMENT_NAME} ${CONTAINER_NAME}=${IMAGE_NAME}:${BUILD_NUMBER}"
-                sh "kubectl rollout status deployment/${DEPLOYMENT_NAME}"
+                withCredentials([usernamePassword(
+                    credentialsId: 'aws-creds',  // You must create this credential in Jenkins
+                    usernameVariable: 'AWS_ACCESS_KEY_ID',
+                    passwordVariable: 'AWS_SECRET_ACCESS_KEY'
+                )]) {
+                    sh '''
+                        export AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
+                        export AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
+
+                        # Update kubeconfig to access EKS cluster
+                        aws eks update-kubeconfig --region $AWS_REGION --name $CLUSTER_NAME
+
+                        # Deploy new Docker image to EKS
+                        kubectl set image deployment/$DEPLOYMENT_NAME $CONTAINER_NAME=$IMAGE_NAME:$BUILD_NUMBER
+                        kubectl rollout status deployment/$DEPLOYMENT_NAME
+                    '''
+                }
             }
         }
     }
