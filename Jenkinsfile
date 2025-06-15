@@ -7,12 +7,13 @@ pipeline {
         CONTAINER_NAME = 'nodeapp'
     }
 
-    stages {
-        stage('Clone Repository') {
-            steps {
-                git credentialsId: 'ae89cfc6-1ebc-401b-b838-cd6933e98698', url: 'https://github.com/gayathri-dev-25/pipeline.git'
-            }
-        }
+    stage('Clone Repository') {
+    steps {
+        git branch: 'main',
+            credentialsId: 'ae89cfc6-1ebc-401b-b838-cd6933e98698',
+            url: 'https://github.com/gayathri-dev-25/pipeline.git'
+    }
+}
 
         stage('Build Docker Image') {
             steps {
